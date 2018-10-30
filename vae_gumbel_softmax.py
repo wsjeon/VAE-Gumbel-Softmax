@@ -72,8 +72,7 @@ def encoder(x):
     net = stack(x, fc, [512, 256])
 
     # Logits over number of classes (N) for K independent categorical distributions.
-    logits_y = tf.reshape(fc(net, FLAGS.num_classes * FLAGS.num_cat_dists, activation_fn=None),
-                          [-1, FLAGS.num_cat_dists])
+    logits_y = tf.reshape(fc(net, FLAGS.num_cat_dists * FLAGS.num_classes, activation_fn=None), [-1, FLAGS.num_classes])
 
     q_y = tf.nn.softmax(logits_y)
     log_q_y = tf.log(q_y + 1e-20)
