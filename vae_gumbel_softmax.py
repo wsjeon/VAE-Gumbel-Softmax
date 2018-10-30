@@ -14,6 +14,7 @@ from plot_utils import *
 
 from matplotlib import pyplot as plt
 from tensorflow.examples.tutorials.mnist import input_data
+from tensorflow.contrib.layers import stack, fully_connected as fc
 
 sns.set_style('whitegrid')
 
@@ -68,15 +69,10 @@ def gumbel_softmax(logits, temperature, hard=False):
 
 def encoder(x):
     # Variational posterior q(y|x), i.e. the encoder (shape=(batch_size, 200))
-    net = slim.stack(x,
-                     slim.fully_connected,
-                     [512, 256])
+    net = stack(x, fc, [512, 256])
 
-    # Unnormalized logits for number of classes (N) seperate K-categorical
-    # distributions
-    logits_y = tf.reshape(slim.fully_connected(net,
-                                               FLAGS.num_classes*FLAGS.num_cat_dists,
-                                               activation_fn=None),
+    # Logits over number of classes (N) for K independent categorical distributions.
+    logits_y = tf.reshape(fc(net, FLAGS.num_classes * FLAGS.num_cat_dists, activation_fn=None),
                           [-1, FLAGS.num_cat_dists])
 
     q_y = tf.nn.softmax(logits_y)
@@ -106,8 +102,7 @@ def decoder(tau, logits_y):
 
 def create_train_op(x, lr, q_y, log_q_y, p_x):
 
-    kl_tmp = tf.reshape(q_y * (log_q_y - tf.log(1.0 / FLAGS.num_classes)),
-                        [-1, FLAGS.num_cat_dists, FLAGS.num_classes])
+    kl_tmp = tf.reshape(q_y * (log_q_y - tf.log(1.0 / FLAGS.num_classes)), [-1, FLAGS.num_cat_dists, FLAGS.num_classes])
 
     KL = tf.reduce_sum(kl_tmp, [1,2])
     elbo = tf.reduce_sum(p_x.log_prob(x), 1) - KL
@@ -119,14 +114,14 @@ def create_train_op(x, lr, q_y, log_q_y, p_x):
 
 
 def train():
-
-    # Setup encoder
-    inputs = tf.placeholder(tf.float32, shape=[None, 784], name='inputs')
-    tau = tf.placeholder(tf.float32, [], name='temperature')
-    learning_rate = tf.placeholder(tf.float32, [], name='lr_value')
-
     # Get data i.e. MNIST
     data = input_data.read_data_sets(FLAGS.data_dir + '/MNIST', one_hot=True)
+
+    # Setup encoder
+    inputs = tf.placeholder(tf.float32, shape=[None, 28*28], name='inputs')
+    tau = tf.placeholder(tf.float32, shape=[], name='temperature')
+    learning_rate = tf.placeholder(tf.float32, shape=[], name='learning_rate')
+
     logits_y, q_y, log_q_y = encoder(inputs)
 
     # Setup decoder
@@ -182,9 +177,6 @@ def plot_vae_gumbel(p_x, inputs, tau, learning_rate, data, sess):
     x_mean = p_x.mean()
     batch = data.test.next_batch(FLAGS.batch_size)
     np_x = sess.run(x_mean, {inputs: batch[0], learning_rate: FLAGS.learning_rate, tau: FLAGS.init_temp})
-
-    tmp = np.reshape(np_x,(-1,280,28)) # (10,280,28)
-    img = np.hstack([tmp[i] for i in range(10)])
     plot_squares(batch[0], np_x, 8)
 
 
