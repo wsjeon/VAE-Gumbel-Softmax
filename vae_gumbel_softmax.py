@@ -68,21 +68,17 @@ def gumbel_softmax(logits, temperature, hard=False):
 
 
 def encoder(x):
-    # Variational posterior q(y|x), i.e. the encoder (shape=(batch_size, 200))
+    # Variational posterior q(z|x), i.e. the encoder (shape=(batch_size, 200))
     net = stack(x, fc, [512, 256])
     # Logits over number of classes (N) for K independent categorical distributions.
     logits = tf.reshape(fc(net, FLAGS.num_cat_dists * FLAGS.num_classes, activation_fn=None), [-1, FLAGS.num_classes])
     return logits
 
 
-def decoder(tau, logits_y):
-    y = tf.reshape(gumbel_softmax(logits_y, tau, hard=False),
-                   [-1, FLAGS.num_cat_dists, FLAGS.num_classes])
-
-    # Generative model p(x|y), i.e. the decoder (shape=(batch_size, 200))
-    net = slim.stack(slim.flatten(y),
-                     slim.fully_connected,
-                     [256, 512])
+def decoder(logits, tau):
+    z = gumbel_softmax(logits, tau, hard=False) # (batch_size * num_cat_dists, num_classes)
+    # Generative model p(x|z), i.e. the decoder (shape=(batch_size, 200))
+    net = stack(z, fc, [256, 512])
 
     logits_x = slim.fully_connected(net,
                                     784,
@@ -116,10 +112,10 @@ def train():
     tau = tf.placeholder(tf.float32, shape=[], name='temperature')
     learning_rate = tf.placeholder(tf.float32, shape=[], name='learning_rate')
 
-    logits_y, q_y, log_q_y = encoder(inputs)
+    logits = encoder(inputs)
 
     # Setup decoder
-    p_x = decoder(tau, logits_y)
+    p_x = decoder(logits, tau)
 
     train_op, loss = create_train_op(inputs, learning_rate, q_y, log_q_y, p_x)
     init_op = [tf.global_variables_initializer(), tf.local_variables_initializer()]
