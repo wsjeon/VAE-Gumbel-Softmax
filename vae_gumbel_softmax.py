@@ -47,9 +47,11 @@ flags.DEFINE_bool('learn_temp', False, 'Learn temperature parameter')
 
 FLAGS = flags.FLAGS
 
+
 def sample_gumbel(shape, eps=1e-20):
     U = tf.random_uniform(shape, minval=0, maxval=1)
     return -tf.log(-tf.log(U + eps) + eps)
+
 
 def gumbel_softmax(logits, temperature, hard=False):
     gumbel_softmax_sample = logits + sample_gumbel(tf.shape(logits))
@@ -62,6 +64,7 @@ def gumbel_softmax(logits, temperature, hard=False):
         y = tf.stop_gradient(y_hard - y) + y
 
     return y
+
 
 def encoder(x):
     # Variational posterior q(y|x), i.e. the encoder (shape=(batch_size, 200))
@@ -81,6 +84,7 @@ def encoder(x):
 
     return logits_y, q_y, log_q_y
 
+
 def decoder(tau, logits_y):
     y = tf.reshape(gumbel_softmax(logits_y, tau, hard=False),
                    [-1, FLAGS.num_cat_dists, FLAGS.num_classes])
@@ -99,6 +103,7 @@ def decoder(tau, logits_y):
 
     return p_x
 
+
 def create_train_op(x, lr, q_y, log_q_y, p_x):
 
     kl_tmp = tf.reshape(q_y * (log_q_y - tf.log(1.0 / FLAGS.num_classes)),
@@ -111,6 +116,7 @@ def create_train_op(x, lr, q_y, log_q_y, p_x):
     train_op = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss)
 
     return train_op, loss
+
 
 def train():
 
@@ -171,6 +177,7 @@ def train():
         coord.join(threads)
         sess.close()
 
+
 def plot_vae_gumbel(p_x, inputs, tau, learning_rate, data, sess):
     x_mean = p_x.mean()
     batch = data.test.next_batch(FLAGS.batch_size)
@@ -180,6 +187,7 @@ def plot_vae_gumbel(p_x, inputs, tau, learning_rate, data, sess):
     img = np.hstack([tmp[i] for i in range(10)])
     plot_squares(batch[0], np_x, 8)
 
+
 def main():
     if tf.gfile.Exists(FLAGS.log_dir):
         tf.gfile.DeleteRecursively(FLAGS.log_dir)
@@ -188,6 +196,7 @@ def main():
     tf.gfile.MakeDirs(FLAGS.checkpoint_dir)
     tf.gfile.MakeDirs(FLAGS.results_dir)
     train()
+
 
 if __name__=="__main__":
     main()
