@@ -38,7 +38,7 @@ flags.DEFINE_integer('batch_size', 100, 'Minibatch size')
 flags.DEFINE_integer('num_iters', 50000, 'Number of iterations')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning rate')
 flags.DEFINE_integer('num_classes', 10, 'Number of classes')
-flags.DEFINE_integer('num_cat_dists', 200, 'Number of categorical distributions') # num_cat_dists//num_calsses
+flags.DEFINE_integer('num_cat_dists', 20, 'Number of categorical distributions') # num_cat_dists//num_calsses
 flags.DEFINE_float('init_temp', 1.0, 'Initial temperature')
 flags.DEFINE_float('min_temp', 0.5, 'Minimum temperature')
 flags.DEFINE_float('anneal_rate', 0.00003, 'Anneal rate')
