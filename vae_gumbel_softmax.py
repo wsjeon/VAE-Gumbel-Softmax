@@ -68,11 +68,20 @@ def gumbel_softmax(logits, temperature, hard=False):
 
 
 def encoder(x):
-    # Variational posterior q(z|x), i.e. the encoder (shape=(batch_size, 200))
+    """Make logits for variational proposal distribution.
+    This is logits for K categorical distributions (K=num_cat_dists),
+    where each categorical distribution is defined on N categories (N=num_classes).
+
+    Parameters
+    ----------
+    x
+
+    Returns
+    -------
+    logits: unnormalized log probability of shape (batch_size * num_cat_dists, num_classes)
+    """
     net = stack(x, fc, [512, 256])
-    # Logits over number of classes (N) for K independent categorical distributions.
-    logits = tf.reshape(fc(net, FLAGS.num_cat_dists * FLAGS.num_classes, activation_fn=None), [-1, FLAGS.num_classes])
-    return logits
+    return tf.reshape(fc(net, FLAGS.num_cat_dists * FLAGS.num_classes, activation_fn=None), [-1, FLAGS.num_classes])
 
 
 def decoder(logits, tau):
@@ -104,8 +113,8 @@ def create_train_op(x, lr, q_y, log_q_y, p_x):
 
 
 def train():
-    # Get data i.e. MNIST
-    data = input_data.read_data_sets(FLAGS.data_dir + '/MNIST', one_hot=True)
+    # Load MNIST data.
+    data = input_data.read_data_sets(FLAGS.data_dir+'/MNIST', one_hot=True)
 
     # Setup encoder
     inputs = tf.placeholder(tf.float32, shape=[None, 28*28], name='inputs')
